@@ -332,6 +332,12 @@ class WorkflowEngine:
             
             if source_id in results:
                 source_result = results[source_id]
+                # Apply input mapping if defined
+                input_mapping = node_def.get('input_mapping', {})
+                if input_mapping:
+                    mapped_data = self._apply_data_mapping(source_result.get('data', {}), input_mapping)
+                    node_input['data'] = mapped_data
+                else:
                 if source_output == 'main' or source_output not in source_result:
                     node_input['data'] = source_result.get('data', {})
                 else:
@@ -361,9 +367,61 @@ class WorkflowEngine:
                     else:
                         merged_data[target_input] = source_data
             
+            # Apply input mapping if defined
+            input_mapping = node_def.get('input_mapping', {})
+            if input_mapping:
+                merged_data = self._apply_data_mapping(merged_data, input_mapping)
+            
             node_input['data'] = merged_data
         
         return node_input
+    
+    def _apply_data_mapping(self, data: Dict, mapping: Dict) -> Dict:
+        """Apply data mapping transformations"""
+        if not mapping:
+            return data
+        
+        mapped_data = {}
+        for target_field, source_path in mapping.items():
+            # Resolve variables in source path
+            if isinstance(source_path, str) and '{{' in source_path:
+                # Simple variable resolution
+                import re
+                pattern = r'\{\{([^}]+)\}\}'
+                matches = re.findall(pattern, source_path)
+                
+                resolved_path = source_path
+                for match in matches:
+                    value = self._get_nested_value(data, match.strip())
+                    resolved_path = resolved_path.replace(f'{{{{{match}}}}}', str(value))
+                
+                mapped_data[target_field] = resolved_path
+            else:
+                # Direct field mapping
+                value = self._get_nested_value(data, source_path)
+                mapped_data[target_field] = value
+        
+        return mapped_data
+    
+    def _get_nested_value(self, data: Dict, path: str) -> Any:
+        """Get nested value using dot notation"""
+        if not path or not data:
+            return data
+        
+        current = data
+        for part in path.split('.'):
+            if isinstance(current, dict) and part in current:
+                current = current[part]
+            elif isinstance(current, list) and part.isdigit():
+                index = int(part)
+                if 0 <= index < len(current):
+                    current = current[index]
+                else:
+                    return None
+            else:
+                return None
+        
+        return current
     
     def _execute_single_node(
         self,

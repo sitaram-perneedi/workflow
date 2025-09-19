@@ -145,6 +145,56 @@ class WorkflowViewSet(viewsets.ModelViewSet):
             })
     
     @action(detail=True, methods=['post'])
+    def schedule(self, request, pk=None):
+        """Schedule a workflow"""
+        workflow = self.get_object()
+        cron_expression = request.data.get('cron_expression')
+        timezone_setting = request.data.get('timezone', 'UTC')
+        
+        if not cron_expression:
+            return Response(
+                {'error': 'Cron expression is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            from .scheduler import schedule_workflow
+            schedule = schedule_workflow(workflow, cron_expression, timezone_setting)
+            
+            return Response({
+                'message': 'Workflow scheduled successfully',
+                'schedule_id': str(schedule.id),
+                'next_execution': schedule.next_execution_at.isoformat()
+            })
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+    
+    @action(detail=True, methods=['post'])
+    def unschedule(self, request, pk=None):
+        """Unschedule a workflow"""
+        workflow = self.get_object()
+        
+        try:
+            from .scheduler import unschedule_workflow
+            success = unschedule_workflow(workflow)
+            
+            if success:
+                return Response({'message': 'Workflow unscheduled successfully'})
+            else:
+                return Response(
+                    {'error': 'Failed to unschedule workflow'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+    
+    @action(detail=True, methods=['post'])
     def activate(self, request, pk=None):
         """Activate a workflow"""
         workflow = self.get_object()

@@ -149,6 +149,23 @@ def execute_scheduled_workflow(workflow_id: str):
         # Execute the workflow
         execute_workflow_task.delay(str(execution.id))
         
+        # Write cron execution log
+        log_message = f"Scheduled execution started for workflow: {workflow.name} (ID: {execution.id})"
+        logger.info(log_message)
+        
+        # Write to file for cron job tracking
+        try:
+            import os
+            log_dir = '/tmp/workflow_logs'
+            if not os.path.exists(log_dir):
+                os.makedirs(log_dir)
+            
+            log_file = os.path.join(log_dir, 'cron_executions.log')
+            with open(log_file, 'a') as f:
+                f.write(f"[{timezone.now()}] {log_message}\n")
+        except Exception as e:
+            logger.error(f"Failed to write cron log: {str(e)}")
+        
         logger.info(f"Scheduled execution created for workflow {workflow.name}")
         
         return {

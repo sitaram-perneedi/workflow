@@ -547,6 +547,7 @@ body {
   background: var(--success-color);
   transform: translateY(-50%) scale(1.2);
   box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.3);
+  animation: pulse 1s infinite;
 }
 
 .node-data-preview {
@@ -916,26 +917,36 @@ body {
   stroke: var(--primary-color);
   stroke-width: 2;
   fill: none;
-  pointer-events: stroke;
+  pointer-events: auto;
   cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .connection-line:hover {
   stroke: var(--warning-color);
   stroke-width: 3;
+  filter: drop-shadow(0 0 4px rgba(245, 158, 11, 0.5));
 }
 
 .connection-line.selected {
   stroke: var(--success-color);
   stroke-width: 3;
+  filter: drop-shadow(0 0 4px rgba(16, 185, 129, 0.5));
 }
 
 .temp-connection {
-  stroke: var(--secondary-color);
+  stroke: var(--warning-color);
   stroke-width: 2;
   stroke-dasharray: 5, 5;
   fill: none;
   pointer-events: none;
+  animation: dash 1s linear infinite;
+}
+
+@keyframes dash {
+  to {
+    stroke-dashoffset: -10;
+  }
 }
 
 /* Responsive */

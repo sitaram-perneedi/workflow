@@ -200,6 +200,24 @@ def workflow_editor_view(request, workflow_id=None):
     if workflow_id:
         workflow = get_object_or_404(Workflow, id=workflow_id, created_by_id=request.user.id)
         workflow_json = workflow.definition or {'nodes': [], 'connections': []}
+        
+        # Handle schedule updates
+        if request.method == 'POST':
+            schedule_enabled = request.POST.get('is_scheduled') == 'on'
+            cron_expression = request.POST.get('cron_expression', '')
+            timezone_setting = request.POST.get('timezone', 'UTC')
+            
+            if schedule_enabled and cron_expression:
+                from .scheduler import schedule_workflow
+                try:
+                    schedule_workflow(workflow, cron_expression, timezone_setting)
+                    messages.success(request, 'Workflow scheduled successfully!')
+                except Exception as e:
+                    messages.error(request, f'Failed to schedule workflow: {str(e)}')
+            elif not schedule_enabled:
+                from .scheduler import unschedule_workflow
+                unschedule_workflow(workflow)
+                messages.success(request, 'Workflow unscheduled successfully!')
     
     context = {
         'csrf_token': csrf_token,

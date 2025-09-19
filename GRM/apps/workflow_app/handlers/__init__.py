@@ -10,6 +10,7 @@ from .condition_handlers import ConditionHandler, SwitchHandler
 from .action_handlers import EmailSendHandler, SlackNotificationHandler, DelayHandler, WebhookSendHandler, FileWriteHandler, LogHandler
 from .output_handlers import DatabaseSaveHandler, FileExportHandler, ResponseHandler
 from .command_handlers import CommandExecutionHandler, FileOperationHandler
+from .grm_handlers import GRMPaymentCheckHandler, GRMRequestDataHandler, CronJobFileWriteHandler
 
 # Registry of all node handlers
 NODE_HANDLERS = {
@@ -48,6 +49,11 @@ NODE_HANDLERS = {
     # Command handlers
     'command_execution': CommandExecutionHandler,
     'file_operation': FileOperationHandler,
+    
+    # GRM specific handlers
+    'grm_payment_check': GRMPaymentCheckHandler,
+    'grm_request_data': GRMRequestDataHandler,
+    'cron_file_write': CronJobFileWriteHandler,
 }
 
 def get_node_handler(node_type: str) -> Optional[BaseNodeHandler]:

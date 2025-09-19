@@ -298,6 +298,8 @@
 
     <!-- JavaScript -->
     <script src="{% static 'workflow_app/js/workflow-editor.js' %}"></script>
+    <script src="{% static 'workflow_app/js/workflow-canvas-fixed.js' %}"></script>
+    <script src="{% static 'workflow_app/js/workflow-editor-complete.js' %}"></script>
     <script src="{% static 'workflow_app/js/variable-manager.js' %}"></script>
     <script>
         // Initialize editor with workflow data
@@ -329,6 +331,15 @@
                     const isEnabled = e.target.checked;
                     scheduleConfig.style.display = isEnabled ? 'block' : 'none';
                     timezoneConfig.style.display = isEnabled ? 'block' : 'none';
+                });
+                
+                // Save schedule settings
+                scheduleCheckbox.addEventListener('change', () => {
+                    window.workflowEditor.markDirty();
+                });
+                
+                document.getElementById('cron-expression')?.addEventListener('change', () => {
+                    window.workflowEditor.markDirty();
                 });
             }
             
@@ -373,6 +384,13 @@
                 .variable-actions {
                     display: flex;
                     gap: 4px;
+                }
+                .node-handle {
+                    transition: all 0.2s ease;
+                }
+                .node-handle:hover {
+                    transform: translateY(-50%) scale(1.3);
+                    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.3);
                 }
             `;
             document.head.appendChild(style);

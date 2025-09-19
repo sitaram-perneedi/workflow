@@ -11,7 +11,7 @@ from django_celery_beat.models import PeriodicTask, CrontabSchedule
 import json
 
 from .models import Workflow, WorkflowSchedule, WorkflowExecution
-from .tasks import execute_workflow_task
+from .tasks import execute_workflow_task, execute_scheduled_workflow
 
 logger = logging.getLogger(__name__)
 
@@ -59,21 +59,20 @@ class WorkflowScheduler:
             
             # Create periodic task
             task_name = f"workflow_{workflow.id}_{workflow.name}"
-            periodic_task, created = PeriodicTask.objects.get_or_create(
+            
+            # Delete existing task if it exists
+            PeriodicTask.objects.filter(name=task_name).delete()
+            
+            # Create new periodic task
+            periodic_task = PeriodicTask.objects.create(
                 name=task_name,
-                defaults={
-                    'crontab': crontab,
-                    'task': 'apps.workflow_app.tasks.execute_scheduled_workflow',
-                    'args': json.dumps([str(workflow.id)]),
-                    'enabled': True,
-                }
+                crontab=crontab,
+                task='apps.workflow_app.tasks.execute_scheduled_workflow',
+                args=json.dumps([str(workflow.id)]),
+                enabled=True
             )
             
-            if not created:
-                # Update existing task
-                periodic_task.crontab = crontab
-                periodic_task.enabled = True
-                periodic_task.save()
+            self.logger.info(f"Created periodic task: {task_name}")
             
             # Create or update workflow schedule
             schedule, created = WorkflowSchedule.objects.get_or_create(
@@ -120,7 +119,8 @@ class WorkflowScheduler:
         try:
             # Remove periodic task
             task_name = f"workflow_{workflow.id}_{workflow.name}"
-            PeriodicTask.objects.filter(name=task_name).delete()
+            deleted_count = PeriodicTask.objects.filter(name=task_name).delete()[0]
+            self.logger.info(f"Deleted {deleted_count} periodic tasks for workflow {workflow.name}")
             
             # Deactivate schedule
             WorkflowSchedule.objects.filter(workflow=workflow).update(is_active=False)
